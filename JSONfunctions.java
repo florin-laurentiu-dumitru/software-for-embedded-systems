@@ -21,6 +21,11 @@ import android.net.ParseException;
 import android.util.Log;
 import android.widget.Toast;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
 public class JSONfunctions {
 	
 	public static JSONObject getJSONfromURL(String url) {
@@ -80,7 +85,7 @@ public class JSONfunctions {
 		try{
 		     HttpClient httpclient = new DefaultHttpClient();
 
-		     //Why to use 10.0.2.2
+		     
 		     HttpPost httppost = new HttpPost("http://134.184.113.5/multimediaSeminar/myFile.php");
 		     httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 		     HttpResponse response = httpclient.execute(httppost);
@@ -125,4 +130,66 @@ public class JSONfunctions {
 		
 //		Toast.makeText(getBaseContext(), ct_name ,Toast.LENGTH_LONG).show();
 		}	
+	
+//////////////////////////////////////////////////////////////
+//Test procedures
+/////////////////////////////////////////////////////////////
+	public void testGetJSONfromURL(){
+		
+	}
+	
+	// Test if current device has uploaded successfully the personal map
+	public void testReadNames(Context context){
+		JSONArray jArray = null;
+		String result = null;
+		StringBuilder sb = null;
+		InputStream is = null;
+		ArrayList<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+		try{
+		     HttpClient httpclient = new DefaultHttpClient();
+		     HttpPost httppost = new HttpPost("http://134.184.113.5/multimediaSeminar/myFile.php");
+		     httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+		     HttpResponse response = httpclient.execute(httppost);
+		     HttpEntity entity = response.getEntity();
+		     is = entity.getContent();
+		     }catch(Exception e){
+		         Log.e("log_tag", "Error in http connection "+e.toString());
+		    }
+		//convert response to string
+		try{
+		      BufferedReader reader = new BufferedReader(new InputStreamReader(is,"iso-8859-1"),8);
+		       sb = new StringBuilder();
+		       sb.append(reader.readLine() + "\n");
+
+		       String line="0";
+		       while ((line = reader.readLine()) != null) {
+		                      sb.append(line + "\n");
+		        }
+		        is.close();
+		        result=sb.toString();
+		        }catch(Exception e){
+		              Log.e("log_tag", "Error converting result "+e.toString());
+		        }
+		String ct_name = "";
+		
+		boolean current_device_posted = false;
+		
+		try{
+		      jArray = new JSONArray(result);
+		      JSONObject json_data=null;
+		      for(int i=0;i<jArray.length();i++){
+		             json_data = jArray.getJSONObject(i);
+//		             ct_name = json_data.getString("name") + " ";//here "Name" is the column name in database
+		             ct_name = json_data.getString("name");	             
+		             if(ct_name.split("-")[0].equals(android.os.Build.MODEL)) current_device_posted = true;	             
+		         }
+		      }
+		      catch(JSONException e1){
+		       Toast.makeText(context, "No Data Found " + e1.toString() ,Toast.LENGTH_LONG).show();
+		      } catch (ParseException e1) {
+		   e1.printStackTrace();
+		 }
+		// Verify that the Sql database contains at least one post from current device
+		assertEquals(ct_name.split("-")[0], android.os.Build.MODEL);
+	}
 }
