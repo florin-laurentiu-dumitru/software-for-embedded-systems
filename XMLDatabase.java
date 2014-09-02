@@ -8,9 +8,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -29,6 +31,14 @@ import android.text.format.DateFormat;
 import android.util.Xml;
 
 import android.content.ContextWrapper;
+
+import org.junit.Assert.*;
+import org.junit.Test;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotSame;
 
 public class XMLDatabase {
 
@@ -52,19 +62,9 @@ public class XMLDatabase {
 	    {
 
 	        serializer.startTag(null, "point");
-	        
-//	        serializer.startTag(null, "latitude");
 
 	        serializer.text(String.valueOf(point.latitude) + " " + String.valueOf(point.longitude));
 	        
-//	        serializer.endTag(null, "latitude");
-	        
-//	        serializer.startTag(null, "longitude");
-
-//	        serializer.text(String.valueOf(point.longitude));
-	        
-//	        serializer.endTag(null, "longitude");
-
 	        serializer.endTag(null, "point");
 	    }
 	    
@@ -79,7 +79,8 @@ public class XMLDatabase {
 	     return filename;
 	}
 	
-	private String getdateTime()
+	// changed to protected
+	protected String getdateTime()
 	{
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss");
 		Calendar cal = Calendar.getInstance();
@@ -171,4 +172,86 @@ public class XMLDatabase {
 		}
 		return deleted;
 	}
+	
+//////////////////////////////////////////////////////////////
+//	Test procedures
+/////////////////////////////////////////////////////////////
+	
+	public void testWrite(Context context) throws IllegalArgumentException, IllegalStateException, IOException
+	{
+		ArrayList<LatLng> coordinatesList = new ArrayList<LatLng>();
+		LatLng coordinate = new LatLng(40.720201058841496, -74.07051086425781);
+		coordinatesList.add(coordinate);	
+		Throwable caught = null;
+		try{
+			this.write(context, coordinatesList);
+		}catch (IllegalArgumentException ex){
+			caught = ex;
+		}catch(IllegalStateException ex2){
+			caught = ex2;
+		}catch(IOException ex3){
+			caught = ex3;
+		}
+		
+		//Check that no exception has been thrown, therefore the file has been written in memory
+		assertNull(caught);
+	}
+	
+	public void testRead(Context context) throws ParseException, IllegalArgumentException, IllegalStateException, IOException, ParserConfigurationException, SAXException
+	{				
+		ArrayList<String> fileList = this.getFilesNames(context);
+		
+		//check that there is at least one file in memory
+		assertTrue(!fileList.isEmpty());
+		
+		String lastFileAdded = this.getFilenameLastDate(fileList);
+		ArrayList<String> readCoordinatesList = this.read(context, lastFileAdded);
+		
+		//check that the last written file has the correct coordinates
+		assertEquals("40.720201058841496 -74.07051086425781",readCoordinatesList.get(0));
+	}
+	
+	public void testGetdateTime(){
+		assertNotNull(this.getdateTime());
+	}
+	
+	public void testGetFilesNames(Context context){
+		assertNotNull(this.getFilesNames(context));
+	}
+	
+	public void testDeleteFile(Context context) throws ParseException, IOException, ParserConfigurationException, SAXException{
+		ArrayList<String> fileList = this.getFilesNames(context);
+		
+		//check that there is at least one file in memory
+		assertTrue(!fileList.isEmpty());
+		
+		String lastFileAdded = this.getFilenameLastDate(fileList);
+		boolean deleted = this.deleteFile(context, lastFileAdded);
+		
+		//check if file was deleted
+		assertTrue(deleted);
+		String lastFileAdded2 = this.getFilenameLastDate(fileList);
+		assertNotSame(lastFileAdded, lastFileAdded2);
+	}
+	
+//////////////////////////////////////////////////////////////
+//	Helper functions
+/////////////////////////////////////////////////////////////
+	protected String getFilenameLastDate(ArrayList<String> filenames) throws ParseException
+	{
+		SimpleDateFormat format = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss");
+		String oldestFile = filenames.get(0);
+	    Date date1 = format.parse(filenames.get(0).split(" ")[0]);
+	    Date date2;
+	    
+		for(String filename : filenames)
+		{
+		    date2 = format.parse(filename.split(" ")[0]);
+		    if (date1.compareTo(date2) <= 0) {
+		    	oldestFile = filename;
+		    }
+		}
+		return oldestFile;
+	}
+	
 }
