@@ -3,134 +3,309 @@ package com.MultimediaSeminar;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.xml.sax.SAXException;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.app.Activity;
-import android.content.Intent;
+import android.util.Log;
 import android.view.Menu;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
+
 import android.widget.Toast;
 
-public class HistoryActivity extends Activity {
+import com.google.android.gms.maps.CameraUpdate;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.gms.maps.MapFragment;
 
-	 private ListView lv;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.provider.Settings;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.graphics.Color;
+import android.support.v4.app.FragmentActivity;
+import android.view.View;
+import android.widget.Toast;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
+public class HistoryDetailActivity extends Activity {
 	
+	private GoogleMap googleMap;
+	private SupportMapFragment mapFrag;
+	
+	private LocationManager locationManager;
+	private String provider;
+	
+	private ArrayList<Point> mapPoints = new ArrayList<Point>();
+	private final LatLng Bruxel = new LatLng(50.841286, 4.358824); 
+	String value = "";
+	
+	JSONParser jsonParser = new JSONParser();
+	
+	// url to create new product
+	private static String url_create_map = "http://134.184.113.5/multimediaseminar/create_map.php";
+
+	// JSON Node names
+	private static final String TAG_SUCCESS = "success";
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_history);
+		setContentView(R.layout.activity_history_detail);
 		
-		final XMLDatabase database = new XMLDatabase();
+//		String value = "";
+		
+		Bundle extras = getIntent().getExtras();
+		if (extras != null) {
+		   value = extras.getString("file_name");
+		}
+		
+		/*Toast.makeText(getApplicationContext(),
+                value , Toast.LENGTH_LONG)
+                .show();*/
+		
+		XMLDatabase database = new XMLDatabase();
 		
 		//Test all methods of the XMLDatabase object
 		try {
 			testXMLDatabase(database);
-		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
-		} catch (IllegalStateException e) {
-			e.printStackTrace();
+		} catch (IllegalArgumentException e1) {
+			e1.printStackTrace();
+		} catch (IllegalStateException e1) {
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		} catch (ParseException e1) {
+			e1.printStackTrace();
+		} catch (ParserConfigurationException e1) {
+			e1.printStackTrace();
+		} catch (SAXException e1) {
+			e1.printStackTrace();
+		}
+		
+		ArrayList<String> points = new ArrayList<String>();
+			
+		try {
+			points = database.read(getApplicationContext(), value);
 		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (ParseException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (ParserConfigurationException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (SAXException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
-		ArrayList<String> filenames = database.getFilesNames(getApplicationContext());
-		final ArrayList<String> fileNamesList = new ArrayList<String>();
 		
-		for(String filename : filenames)
+		for(String p : points)
 		{
-			if(filename.startsWith("Map "))
-				fileNamesList.add(filename);
+			String[] parts = p.split(" ");
+			Point newPoint = new Point(Double.parseDouble(parts[0]), Double.parseDouble(parts[1]));
+			mapPoints.add(newPoint);
 		}
 		
-		 lv = (ListView) findViewById(R.id.listViewHistory);
-
-         final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(
-                 this, 
-                 android.R.layout.simple_list_item_1,
-                 fileNamesList );
-
-         lv.setAdapter(arrayAdapter); 
-         
-         lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-        	 
-             @Override
-             public void onItemClick(AdapterView<?> parent, View view,
-                int position, long id) {              
-            	 
-              // ListView Clicked item index
-              int itemPosition     = position;
-              
-              // ListView Clicked item value
-              String  itemValue    = (String) lv.getItemAtPosition(position);
-            	 
-            	 Intent intent = new Intent(view.getContext(), HistoryDetailActivity.class);
-            	 intent.putExtra("file_name",itemValue);
-            	 startActivityForResult(intent,0);
-                 
-             /*  // Show Alert 
-               Toast.makeText(getApplicationContext(),
-                 "Position :"+itemPosition+"  ListItem : " +itemValue , Toast.LENGTH_LONG)
-                 .show();*/
-            
-             }		
-        }); 
-         
-         	lv.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-        	 
-             @Override
-             public boolean onItemLongClick(AdapterView<?> parent, View view,
-                int position, long id) {              
-            	 
-              // ListView Clicked item index
-              int itemPosition     = position;
-              
-              // ListView Clicked item value
-              String  itemValue    = (String) lv.getItemAtPosition(position);
-              
-              // Show Alert 
-              Toast.makeText(getApplicationContext(),
-                "File named :"+itemValue+" was deleted ", Toast.LENGTH_LONG)
-                .show();
-              
-              fileNamesList.remove(itemValue);
-              arrayAdapter.notifyDataSetChanged();
-            	 
-              return database.deleteFile(getApplicationContext(), itemValue);
-              
-            	/* Intent intent = new Intent(view.getContext(), HistoryDetailActivity.class);
-            	 intent.putExtra("file_name",itemValue);
-            	 startActivityForResult(intent,0);*/
-             }		
-        });
-         
-         
+		/*Toast.makeText(getApplicationContext(),
+				mapPoints.toString() , Toast.LENGTH_LONG)
+                .show();*/
+		
+		googleMap = ((MapFragment) getFragmentManager().findFragmentById(R.id.map)).getMap();
+		
+		googleMap.setMyLocationEnabled(true);
+		
+		goToStartpoint();
+		
+		drawRoute();
+	}
+	
+	protected void goToStartpoint()
+	{
+		googleMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+		Point startingPoint = mapPoints.get(0);
+		Point endPoint = mapPoints.get(mapPoints.size() - 1);
+		CameraUpdate update = CameraUpdateFactory.newLatLngZoom(new LatLng(startingPoint.getLatitude(), startingPoint.getLongitute()), 16);
+//		CameraUpdate update = CameraUpdateFactory.newLatLngZoom(Bruxel, 16);
+		googleMap.animateCamera(update);
+		
+		Marker startPerc = googleMap.addMarker(new MarkerOptions()
+        .position(new LatLng(startingPoint.getLatitude(), startingPoint.getLongitute()))
+        .title("Start")
+        .snippet("starting point"));
+		
+		Marker endPerc = googleMap.addMarker(new MarkerOptions()
+        .position(new LatLng(endPoint.getLatitude(), endPoint.getLongitute()))
+        .title("End")
+        .snippet("ending point"));
+		
+		
+	}
+	
+	protected void drawRoute()
+	{
+		for(int i=1; i<mapPoints.size(); i++)
+		{
+			Polyline line = googleMap.addPolyline(new PolylineOptions()
+			.add(new LatLng(mapPoints.get(i-1).getLatitude(), mapPoints.get(i-1).getLongitute()), new LatLng(mapPoints.get(i).getLatitude(), mapPoints.get(i).getLongitute()))
+        	.width(10)
+        	.color(Color.BLUE));
+		}
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.history, menu);
+		getMenuInflater().inflate(R.menu.history_detail, menu);
 		return true;
 	}
+	
+		public void onClick_Share(View v)
+	{
+		new CreateNewProduct().execute();
+	}
+		
+		class CreateNewProduct extends AsyncTask<String, String, String> {
 
-    protected void testXMLDatabase(XMLDatabase localDatabase) throws IllegalArgumentException, IllegalStateException, IOException, ParseException, ParserConfigurationException, SAXException{
-    	localDatabase.testGetdateTime();
-    	localDatabase.testWrite(getApplicationContext());
-    	localDatabase.testGetFilesNames(getApplicationContext());
-    	localDatabase.testRead(getApplicationContext());
-    	localDatabase.testDeleteFile(getApplicationContext());
-    }
+			/**
+			 * Before starting background thread Show Progress Dialog
+			 * */
+			@Override
+			protected void onPreExecute() {
+				super.onPreExecute();
+				/*pDialog = new ProgressDialog(NewProductActivity.this);
+				pDialog.setMessage("Registering Map..");
+				pDialog.setIndeterminate(false);
+				pDialog.setCancelable(true);
+				pDialog.show();*/
+			}
+
+			/**
+			 * Creating product
+			 * */
+			protected String doInBackground(String... args) {
+				
+				String name = android.os.Build.MODEL + " - " + value;
+				String latitude = "";
+				String longitude = ""; 
+				
+				latitude += mapPoints.get(0).getLatitude() + " ";
+				longitude += mapPoints.get(0).getLongitute() + " ";
+				
+				for(int i=0; i<mapPoints.size(); i++)
+				{
+					if ((i+1) % 5 == 0)
+					{
+					latitude += mapPoints.get(i).getLatitude() + " ";
+					longitude += mapPoints.get(i).getLongitute() + " ";
+					}
+				}
+				
+				latitude += mapPoints.get(mapPoints.size() - 1).getLatitude() + " ";
+				longitude += mapPoints.get(mapPoints.size() - 1).getLongitute() + " ";
+
+
+				// Building Parameters
+				List<NameValuePair> params = new ArrayList<NameValuePair>();
+				params.add(new BasicNameValuePair("name", name));
+				params.add(new BasicNameValuePair("latitude", latitude));
+				params.add(new BasicNameValuePair("longitude", longitude));
+
+				// getting JSON Object
+				// Note that create product url accepts POST method
+				JSONObject json = jsonParser.makeHttpRequest(url_create_map,
+						"POST", params);
+				
+				// check log cat for response
+				Log.d("Create Response", json.toString());
+
+				// check for success tag
+				try {
+					int success = json.getInt(TAG_SUCCESS);
+
+					if (success == 1) {
+						
+						// closing this screen
+						finish();
+					} else {
+						/*Toast.makeText(getApplicationContext(), "An error has occurred, the map was not shared!",
+				                Toast.LENGTH_LONG).show();*/
+						// failed to create product
+					}
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
+
+				return null;
+			}
+
+			/**
+			 * After completing background task Dismiss the progress dialog
+			 * **/
+			protected void onPostExecute(String file_url) {
+				// dismiss the dialog once done
+//				pDialog.dismiss();
+			}
+
+		}
+		
+//////////////////////////////////////////////////////////////
+//Test procedures
+/////////////////////////////////////////////////////////////
+	    protected void testXMLDatabase(XMLDatabase localDatabase) throws IllegalArgumentException, IllegalStateException, IOException, ParseException, ParserConfigurationException, SAXException{
+	    	localDatabase.testGetdateTime();
+	    	localDatabase.testWrite(getApplicationContext());
+	    	localDatabase.testGetFilesNames(getApplicationContext());
+	    	localDatabase.testRead(getApplicationContext());
+	    	localDatabase.testDeleteFile(getApplicationContext());
+	    }
+	    
+	    protected void testDrawRoute(){
+	    	
+	    	Polyline previousLine = googleMap.addPolyline(new PolylineOptions()
+			.add(new LatLng(mapPoints.get(0).getLatitude(), mapPoints.get(0).getLongitute()), new LatLng(mapPoints.get(1).getLatitude(), mapPoints.get(1).getLongitute()))
+        	.width(10)
+        	.color(Color.BLUE));
+	    	
+	    	// Verify that the list of points is not empty
+	    	assertNotNull(mapPoints);
+	    	
+	    	for(int i=2; i<mapPoints.size(); i++)
+			{
+				Polyline line = googleMap.addPolyline(new PolylineOptions()
+				.add(new LatLng(mapPoints.get(i-1).getLatitude(), mapPoints.get(i-1).getLongitute()), new LatLng(mapPoints.get(i).getLatitude(), mapPoints.get(i).getLongitute()))
+	        	.width(10)
+	        	.color(Color.BLUE));
+				
+				assertNotNull(line);
+				// Verify that the end of the last line is the begining of the new one
+				assertEquals(line.getPoints().get(0), previousLine.getPoints().get(1));
+			}
+			//Clear the map after testing
+			googleMap.clear();
+	    }
+
 }
