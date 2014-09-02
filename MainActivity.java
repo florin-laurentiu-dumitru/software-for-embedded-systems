@@ -1,7 +1,12 @@
 package com.MultimediaSeminar;
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.ArrayList;
+
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.xml.sax.SAXException;
 
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -66,9 +71,13 @@ public class MainActivity extends FragmentActivity implements LocationListener{
 		return true;
 	}
 
-	public void onClick_Save(View v) throws IllegalArgumentException, IllegalStateException, IOException
+	public void onClick_Save(View v) throws IllegalArgumentException, IllegalStateException, IOException, ParseException, ParserConfigurationException, SAXException
 	{
 		XMLDatabase database = new XMLDatabase();
+		
+		//Test all methods of the XMLDatabase object
+		testXMLDatabase(database);
+		
 		String filename = database.write(getApplicationContext(), coordinatesList);
 		Toast.makeText(this, "Map saved with name: " + filename, Toast.LENGTH_LONG).show();
 //		Toast.makeText(this, "Path: " + getApplicationContext().getFilesDir(), Toast.LENGTH_LONG).show();
@@ -121,7 +130,7 @@ public class MainActivity extends FragmentActivity implements LocationListener{
 	}
 	
 	
-	private void goToCurrentLocation()
+	protected void goToCurrentLocation()
 	{
 		LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
         boolean enabledGPS = service
@@ -257,5 +266,12 @@ public class MainActivity extends FragmentActivity implements LocationListener{
    //     locationManager.removeUpdates(this);
     }
 	
+    protected void testXMLDatabase(XMLDatabase localDatabase) throws IllegalArgumentException, IllegalStateException, IOException, ParseException, ParserConfigurationException, SAXException{
+    	localDatabase.testGetdateTime();
+    	localDatabase.testWrite(getApplicationContext());
+    	localDatabase.testGetFilesNames(getApplicationContext());
+    	localDatabase.testRead(getApplicationContext());
+    	localDatabase.testDeleteFile(getApplicationContext());
+    }
 
 }
