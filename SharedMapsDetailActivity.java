@@ -29,6 +29,11 @@ import android.util.Log;
 import android.view.Menu;
 import android.widget.EditText;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
 public class SharedMapsDetailActivity extends Activity {
 	
 	private ArrayList<Point> mapPoints = new ArrayList<Point>();
@@ -78,7 +83,7 @@ public class SharedMapsDetailActivity extends Activity {
 		return true;
 	}
 	
-	private void drawMap()
+	protected void drawMap()
 	{
 		String[] latitudes = latitude.split(" ");
 		String[] longitudes = longitude.split(" ");
@@ -100,7 +105,8 @@ public class SharedMapsDetailActivity extends Activity {
 		goToStartpoint();
 	}
 	
-	private void goToStartpoint()
+	// could not be tested because of the complexity of the API
+	protected void goToStartpoint()
 	{
 		googleMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
 		Point startingPoint = mapPoints.get(0);
@@ -192,6 +198,59 @@ public class SharedMapsDetailActivity extends Activity {
 
 			drawMap();
 		}
+	}
+	
+//////////////////////////////////////////////////////////////
+//Test procedures
+/////////////////////////////////////////////////////////////
+	protected void testDrawMap()
+	{
+		// Verify that latitude and longitude coordinates were read
+		assertNotNull(latitude);
+		assertNotNull(longitude);
+		
+		String[] latitudes = latitude.split(" ");
+		String[] longitudes = longitude.split(" ");
+		
+		// Verify that there as as many latitude coordinates as longitude coordinates
+		assertEquals(latitudes.length, longitudes.length);
+		
+		int j = 0;
+		for(String coordinate : latitudes)
+		{
+			Point newPoint = new Point(Double.parseDouble(latitudes[j]), Double.parseDouble(longitudes[j]));
+			
+			// Verify that the new point has been creates
+			assertNotNull(newPoint);
+			
+			mapPoints.add(newPoint);
+			j++;
+		}	
+		
+		// Verify that the list of points contains at least two points
+		assertTrue(mapPoints.size() >= 2);
+		
+		Polyline previousLine = googleMap.addPolyline(new PolylineOptions()
+		.add(new LatLng(mapPoints.get(0).getLatitude(), mapPoints.get(0).getLongitute()), new LatLng(mapPoints.get(1).getLatitude(), mapPoints.get(1).getLongitute()))
+    	.width(10)
+    	.color(Color.BLUE));
+    	
+    	// Verify that the list of points is not empty
+    	assertNotNull(mapPoints);
+		
+		for(int i=1; i<mapPoints.size(); i++)
+		{
+			Polyline line = googleMap.addPolyline(new PolylineOptions()
+			.add(new LatLng(mapPoints.get(i-1).getLatitude(), mapPoints.get(i-1).getLongitute()), new LatLng(mapPoints.get(i).getLatitude(), mapPoints.get(i).getLongitute()))
+        	.width(10)
+        	.color(Color.BLUE));
+			
+			assertNotNull(line);
+			// Verify that the end of the last line is the begining of the new one
+			assertEquals(line.getPoints().get(0), previousLine.getPoints().get(1));
+		}
+		//Clear the map after testing
+		googleMap.clear();
 	}
 
 }
